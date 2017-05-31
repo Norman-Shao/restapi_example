@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Flask 
+import os
+from flask import request, jsonify
+from flask.views import MethodView
 
-app = Flask(__name__)
+from factory import create_app
+from models import Post
+
+
+app = create_app()
 
 @app.route('/')
 def hello_rest():
@@ -29,9 +35,49 @@ def hello_rest():
     </html>
     '''
 
+class PostListView(MethodView):
+    def get(self):
+        posts = Post.objects.all()
+        data = [post.to_dict() for post in posts]
+
+        return jsonify(posts=data)
+
+    def post(self):
+        '''
+        post data example:
+        {
+            "title": "Title 1",
+            "slug": "title-1",
+            "abstract": "Abstract for this article",
+            "raw": "The article content",
+            "author": "Gevin",
+            "category": "default",
+            "tags": ["tag1", "tag2"]
+        }
+        '''
+        data = request.get_json()
+        article = Post()
+
+        # return jsonify(data)
+
+        article.title = data.get('title')
+        article.slug = data.get('slug')
+        article.abstract = data.get('abstract')
+        article.raw = data.get('raw')
+        article.author = data.get('author')
+        article.category = data.get('category')
+        article.tags = data.get('tags')
+
+        article.save()
+
+        return jsonify(article.to_dict())
+
+app.add_url_rule('/posts/', view_func=PostListView.as_view('posts'))
+
+
+
 if __name__ == '__main__':
     app.run(
         host = '0.0.0.0',
-        port = 5000,
-        debug = True
+        port = 5000
     )
